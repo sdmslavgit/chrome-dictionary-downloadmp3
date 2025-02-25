@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "MP3 Downloader - List and Download (2 seconds, for each page)",
+  "version": "1.0",
+  "description": "Simulates a left click on the last clicked element (e.g., speaker icon), lists all MP3s downloaded within 2 seconds in the console, and downloads them, available on every page.",
+  "permissions": [
+    "contextMenus",
+    "scripting",
+    "activeTab",
+    "webRequest",
+    "downloads"
+  ],
+  "host_permissions": [
+    "*://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["content.js"]
+    }
+  ]
+}

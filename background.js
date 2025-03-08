@@ -17,25 +17,15 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "simulateLeftClick") {
-    // Get the page name (active tab address)
     let pageName = tab.url ? extractPageName(tab.url) : "download";
 
-    // correction for forvo
-    if (tab.url.includes("forvo.com")) {
-      let match = tab.url.match(/search\/([^\/]+)/);
-      if (match && match[1]) {
-        pageName = decodeURIComponent(match[1].replace(/%20/g, ""));
-      }
+    // Specjalne traktowanie dla diki.pl
+    let isDiki = tab.url.includes("diki.pl");
 
-      match = tab.url.match(/word\/([^\/]+)/);
-      if (match && match[1]) {
-        pageName = decodeURIComponent(match[1].replace(/%2C/g, "").replace(/%E2%80%99/g, "").replace(/\./g, "").replace(/%20/g, "_"));
-      }
-    }
-  
-    // Send a message to the content script to simulate a left click
+    // Wysłanie wiadomości do content.js do kliknięcia na ostatni element
     chrome.tabs.sendMessage(tab.id, { action: "simulateClick" }, (response) => {
       if (chrome.runtime.lastError) {
         console.error("Error sending message:", chrome.runtime.lastError.message);
@@ -46,7 +36,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       }
     });
 
-    // Start observing MP3 requests for 2 seconds
     observing = true;
     observedMp3Urls = [];
     if (observationTimeout) clearTimeout(observationTimeout);
@@ -54,17 +43,21 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       observing = false;
       console.log("Observed MP3s within 2 seconds:", observedMp3Urls);
 
-      // For each URL, download the file with a name based on the page address.
-      // If only one file is registered, do not add an index.
       observedMp3Urls.forEach((url, index, arr) => {
-        let filename = pageName;
+        let filename;
 
-        // correction for multiple files
-        if (arr.length > 1) {
-          filename = filename + "_" + index;
+        if (isDiki) {
+          // Pobranie nazwy pliku z URL
+          let urlParts = url.split("/");
+          filename = urlParts[urlParts.length - 1]; // Ostatnia część URL jako nazwa pliku
+        } else {
+          // Standardowy mechanizm
+          filename = pageName;
+          if (arr.length > 1) {
+            filename = filename + "_" + index;
+          }
+          filename = filename + ".mp3";
         }
-
-        filename = filename + ".mp3";
 
         chrome.downloads.download({
           url: url,
@@ -83,6 +76,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     }, 2000);
   }
 });
+
+
+
 // Listen for completed HTTP requests from any domain
 chrome.webRequest.onCompleted.addListener(
   (details) => {
